@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# NERV / MAGI lock screen (Quickshell). Falls back to hyprlock if it fails.
+# Files: ~/.local/share/nerv-lock
+
+SHELL_DIR="$HOME/.local/share/nerv-lock"
+
+# Already locked? Do nothing.
+pgrep -f "qs -p $SHELL_DIR" >/dev/null && exit 0
+pgrep -x hyprlock >/dev/null && exit 0
+
+# Let another locker take over if this one dies while locked.
+hyprctl keyword misc:allow_session_lock_restore 1 >/dev/null 2>&1
+
+qs -p "$SHELL_DIR" >/dev/null 2>"${XDG_RUNTIME_DIR:-/tmp}/nerv-lock.log"
+status=$?
+
+if [ "$status" -ne 0 ]; then
+    notify-send -u critical "nerv-lock" "Quickshell lock failed (exit $status), using hyprlock." 2>/dev/null
+    exec hyprlock
+fi
